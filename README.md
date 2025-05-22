@@ -385,3 +385,169 @@ This project is open source and available under the MIT License.
 - LangChain and LangGraph teams
 - StyTR-2 authors for the style transfer model
 - The open-source community
+
+# StyTR-2 图像风格迁移工具 (Image Style Transfer Tool using StyTR-2)
+
+## 简介 (Introduction)
+
+本工具包利用 StyTR-2 模型实现强大的图像风格迁移功能。它被封装为一个 Langchain 工具，并提供了一个 MCP (MCP) 服务器接口，方便集成到各种应用中。此外，还包含一个集成了此工具的 Langchain Agent 示例。
+
+This toolkit leverages the StyTR-2 model to perform powerful image style transfer. It is packaged as a Langchain tool and also provides an MCP (Multi-Content Interaction Protocol) server interface, making it easy to integrate into various applications. Additionally, an example Langchain Agent demonstrating the tool's usage is included.
+
+## 功能特性 (Features)
+
+*   **高质量风格迁移 (High-Quality Style Transfer)**：基于 StyTR-2 模型，能够生成艺术效果出色的风格化图像。
+*   **Langchain 工具集成 (Langchain Tool Integration)**：提供 `style_transfer` 工具，可轻松嵌入到 Langchain Agent 或链中。
+    *   输入内容图片路径 (content image path) 和风格图片路径 (style image path)。
+    *   可选输出路径 (optional output path)；如果未提供，则默认保存到项目根目录下的 `output/` 文件夹。
+    *   可调风格强度 `alpha` (adjustable style strength `alpha`)。
+*   **MCP 服务器 (MCP Server)**：通过 `style_transfer_mcp_server.py` 启动，提供以下 API 端点：
+    *   `apply_style_transfer`：执行风格迁移，可选择返回 base64 编码的图像或保存到文件。
+    *   `list_available_styles`：列出 `StyTR-2/demo/s_img/` 目录下的可用风格图片。
+    *   `list_content_images`：列出 `StyTR-2/demo/c_img/` 目录下的可用内容图片。
+    *   `style-transfer://model-info`：获取模型信息资源。
+*   **示例 Agent (Example Agent)**：`basic_agent_with_style_transfer.py` 展示了如何在 Langchain Agent 中使用风格迁移工具及其他常用工具。
+*   **标准化输出 (Standardized Output)**：所有通过工具生成的图像默认保存在项目根目录下的 `output/` 文件夹中，该文件夹会自动创建。
+*   **清晰的项目结构 (Clear Project Structure)**：易于理解和扩展。
+
+## 项目结构 (Project Structure)
+
+```
+.
+├── StyTR-2/                    # StyTR-2 模型和相关文件 (Git submodule or directory)
+│   ├── demo/
+│   │   ├── c_img/              # 示例内容图片 (Sample content images)
+│   │   └── s_img/              # 示例风格图片 (Sample style images)
+│   └── experiments/            # 预训练模型权重 (Pre-trained model weights)
+├── output/                     # 生成的风格化图像默认输出目录 (Default output directory for stylized images)
+├── .gitignore                  # Git忽略文件配置
+├── style_transfer_tool.py      # Langchain 工具定义
+├── style_transfer_mcp_server.py # MCP 服务器实现
+├── basic_agent_with_style_transfer.py # 集成工具的示例Agent
+├── test_style_transfer_tool.py # 工具测试脚本
+└── README.md                   # 本文档 (This document)
+```
+
+**重要 (Important):**
+*   `StyTR-2/` 目录包含了核心模型代码和必要的模型权重文件。请确保此目录完整且模型文件已按要求下载。
+*   `output/` 目录用于存放所有由本工具包生成的图像。此目录会在首次生成图像时自动创建，并已被添加到 `.gitignore`。
+
+## 环境设置与依赖 (Setup and Dependencies)
+
+1.  **Python 版本 (Python Version)**：建议使用 Python 3.8 或更高版本。
+    (Python 3.8+ is recommended.)
+
+2.  **克隆仓库 (Clone Repository)**：
+    ```bash
+    git clone <your-repository-url>
+    cd <repository-name>
+    ```
+
+3.  **StyTR-2 模型 (StyTR-2 Model)**：
+    *   如果 `StyTR-2` 是一个 Git 子模块 (Git submodule)，请运行：
+        ```bash
+        git submodule update --init --recursive
+        ```
+    *   如果不是子模块，请确保您已将 StyTR-2 的代码和预训练模型放置在项目根目录下的 `StyTR-2` 文件夹中。
+    *   **下载模型权重 (Download Model Weights)**：根据 StyTR-2 的原始说明，下载 `vgg_normalised.pth`、`decoder_iter_160000.pth`、`transformer_iter_160000.pth` 和 `embedding_iter_160000.pth`，并将它们放置在 `StyTR-2/experiments/` 目录下。
+
+4.  **安装依赖包 (Install Dependencies)**：
+    ```bash
+    pip install torch torchvision Pillow langchain langchain-openai pydantic pytz tavily-python mcp-fastmcp
+    ```
+    *   请确保安装与您的 CUDA 版本兼容的 PyTorch 版本（如果希望使用 GPU）。
+        (Ensure you install a PyTorch version compatible with your CUDA version if GPU usage is desired.)
+    *   `mcp-fastmcp` 用于 MCP 服务器。
+
+5.  **OpenAI API 密钥 (OpenAI API Key)**：
+    对于 `basic_agent_with_style_transfer.py` 中的 Agent，需要设置 OpenAI API 密钥：
+    (For the Agent in `basic_agent_with_style_transfer.py`, set your OpenAI API key:)
+    ```bash
+    export OPENAI_API_KEY="your_openai_api_key_here"
+    ```
+
+## 使用方法 (Usage)
+
+**请确保从项目根目录运行以下脚本，以保证相对路径的正确解析。**
+**(Please ensure you run the following scripts from the project root directory for correct relative path resolution.)**
+
+### 1. Langchain 工具 (`style_transfer_tool.py`)
+
+可以直接在 Python 脚本中导入和使用 `style_transfer` 工具。
+
+```python
+from style_transfer_tool import style_transfer
+
+# 示例调用 (Example call)
+result = style_transfer.invoke({
+    "content_image_path": "StyTR-2/demo/c_img/2_10_0_0_512_512.png",
+    "style_image_path": "StyTR-2/demo/s_img/LevelSequence_Vaihingen.0002.png",
+    "output_path": "output/my_stylized_image.jpg", # 可选 (Optional)
+    "alpha": 0.8 # 可选，默认 1.0 (Optional, default 1.0)
+})
+print(result)
+# Output: Style transfer completed! Output saved to: output/my_stylized_image.jpg
+```
+如果未提供 `output_path`，图像将保存到 `output/stylized_<content_name>_with_<style_name>.jpg`。
+
+(If `output_path` is not provided, the image will be saved to `output/stylized_<content_name>_with_<style_name>.jpg`.)
+
+### 2. MCP 服务器 (`style_transfer_mcp_server.py`)
+
+启动服务器：
+(Start the server:)
+```bash
+python style_transfer_mcp_server.py
+```
+服务器将在默认端口 (通常是 8000) 上运行。您可以使用任何 MCP 客户端与服务器交互，调用 `apply_style_transfer`, `list_available_styles`, `list_content_images` 等工具。
+
+### 3. 示例 Agent (`basic_agent_with_style_transfer.py`)
+
+此脚本演示了如何将 `style_transfer` 工具与其他工具（如 OCR、时间获取、网页搜索、计算器）集成到一个 Langchain Agent 中。
+
+运行示例 Agent：
+(Run the example Agent:)
+```bash
+python basic_agent_with_style_transfer.py
+```
+然后您可以与 Agent 进行交互，例如：
+(Then you can interact with the Agent, e.g.:)
+```
+请输入您的问题: 请将 StyTR-2/demo/c_img/2_10_0_0_512_512.png 转换成 StyTR-2/demo/s_img/LevelSequence_Vaihingen.0002.png 的艺术风格
+```
+生成的图像将保存在 `output/` 目录下。
+
+## 测试 (Testing)
+
+项目包含一个测试脚本 `test_style_transfer_tool.py`，用于验证 Langchain 工具的基本功能和模型文件的完整性。
+
+运行测试：
+(Run tests:)
+```bash
+python test_style_transfer_tool.py
+```
+测试脚本会：
+1.  检查所有必需的 StyTR-2 模型文件是否存在于 `StyTR-2/experiments/`。
+2.  使用 Langchain 工具对 `StyTR-2/demo/` 中的示例图像进行风格迁移。
+3.  检查输出图像是否成功创建在 `output/` 目录中。
+
+## 注意事项 (Notes)
+
+*   **执行路径 (Execution Path)**：强烈建议所有脚本都从项目的根目录执行，以确保所有相对路径（特别是针对 `StyTR-2` 目录和 `output` 目录的路径）都能被正确解析。
+*   **GPU 支持 (GPU Support)**：默认情况下，代码会尝试使用 CUDA GPU（如果可用）。如果 GPU 不可用或未正确配置，则会回退到 CPU。在 CPU 上进行风格迁移可能会非常慢。
+*   **模型文件 (Model Files)**：确保 `StyTR-2/experiments/` 目录下的模型文件 (`.pth`) 未被意外添加到 Git 跟踪中（已通过 `.gitignore` 配置忽略）。
+*   **错误处理 (Error Handling)**：脚本中包含基本的错误处理，但可能需要根据具体部署环境进行增强。
+
+## 未来展望 (Future Work) (Optional)
+
+*   [ ] 更细致的参数控制（例如，内容权重、风格权重等）。
+        (Finer-grained parameter control, e.g., content weight, style weight.)
+*   [ ] 支持通过 URL 输入图像。
+        (Support for image input via URLs.)
+*   [ ] 构建一个简单的 Web UI 界面。
+        (Build a simple Web UI interface.)
+
+---
+
+希望这份 README 对您有所帮助！如果您有任何其他建议或需要修改的地方，请告诉我。
+(Hope this README is helpful! Please let me know if you have any other suggestions or need modifications.)
