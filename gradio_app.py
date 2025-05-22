@@ -13,80 +13,80 @@ from langchain_core.messages import HumanMessage
 from langchain_community.tools import DuckDuckGoSearchRun
 from langchain_experimental.tools.python.tool import PythonREPLTool
 
-# 从核心模块导入 Agent 创建函数和核心工具/提示（如果需要引用或比较）
+# Import Agent creation function and core tools/prompts from the core module (if needed for reference or comparison)
 from core_agent import get_agent_runnable_and_checkpointer, get_core_llm, CORE_SYSTEM_PROMPT, CORE_TOOLS_LIST
 
-# --- 环境设置 (主要由core_agent处理，但Gradio可能需要LLM实例用于非Agent任务，如果存在的话) ---
-# llm_gradio = get_core_llm() # 获取核心LLM实例，供Gradio界面特定逻辑使用 (如果需要)
-# 如果Gradio的Agent完全依赖core_agent的get_agent_runnable...，则此行可能不需要，
-# 因为llm实例会在get_agent_runnable_and_checkpointer内部创建。
-# 为了清晰，我们让Agent创建时获取自己的LLM。
+# --- Environment Setup (Mainly handled by core_agent, but Gradio might need an LLM instance for non-Agent tasks, if any) ---
+# llm_gradio = get_core_llm() # Get core LLM instance for Gradio interface specific logic (if needed)
+# If Gradio's Agent fully relies on core_agent's get_agent_runnable..., this line might not be needed,
+# because the llm instance will be created inside get_agent_runnable_and_checkpointer.
+# For clarity, we let the Agent get its own LLM upon creation.
 
-# --- Gradio 特定工具定义 ---
+# --- Gradio Specific Tool Definitions ---
 
-# OCR 工具 (PIL Image版 - Gradio专用)
+# OCR Tool (PIL Image version - Gradio specific)
 def perform_ocr_gradio(pil_image: Image.Image) -> str:
-    """使用 pytesseract 执行 OCR，识别 PIL Image 对象中的中英文字符。"""
+    """Perform OCR using pytesseract to recognize Chinese and English characters in a PIL Image object."""
     if pil_image is None:
-        return "错误：没有提供图像进行OCR。"
+        return "Error: No image provided for OCR."
     try:
         text = pytesseract.image_to_string(pil_image, lang='chi_sim+eng')
         if not text.strip():
-            return "OCR未能识别到任何文字，或者图片为空白。"
-        return f"图像OCR识别结果如下：\n{text.strip()}"
+            return "OCR failed to recognize any text, or the image is blank."
+        return f"Image OCR recognition results are as follows:\n{text.strip()}"
     except Exception as e:
-        return f"OCR处理失败，错误信息：{str(e)}"
+        return f"OCR processing failed, error message: {str(e)}"
 
-# Gradio Agent 使用的工具列表
-# 这些工具的定义应与 core_agent.py 中的工具功能一致，但实例是本地的。
-# 或者，可以从 CORE_TOOLS_LIST 中选择性地使用，但要确保它们适用于Gradio环境
-# (例如，文件路径OCR不直接适用Gradio的Image组件)
+# List of tools used by Gradio Agent
+# The definitions of these tools should be consistent with the tool functions in core_agent.py, but the instances are local.
+# Alternatively, they can be selectively used from CORE_TOOLS_LIST, but ensure they are suitable for the Gradio environment
+# (e.g., file path OCR is not directly applicable to Gradio's Image component)
 
 def get_gradio_tools():
-    """构建Gradio应用专用的工具列表，从CORE_TOOLS_LIST中选取。"""
+    """Build a list of tools specific to the Gradio application, selected from CORE_TOOLS_LIST."""
     gradio_tools = []
     for core_tool in CORE_TOOLS_LIST:
-        # 对于Gradio，我们不直接使用文件路径版的OCR工具（ImageFileOCR）
-        # 因为OCR是通过perform_ocr_gradio预处理的。
-        # Agent接收的是文本，而不是文件路径让它去OCR。
+        # For Gradio, we do not directly use the file path version of the OCR tool (ImageFileOCR)
+        # because OCR is preprocessed by perform_ocr_gradio.
+        # The Agent receives text, not a file path for it to perform OCR.
         if core_tool.name == "ImageFileOCR":
-            continue # 跳过文件路径OCR工具
-        gradio_tools.append(core_tool) # 其他工具直接使用核心版本
+            continue # Skip file path OCR tool
+        gradio_tools.append(core_tool) # Other tools directly use the core version
     return gradio_tools
 
 tools_gradio_list = get_gradio_tools()
 print(f"[Gradio App] Tools loaded for Gradio Agent: {[tool.name for tool in tools_gradio_list]}")
 
-# --- LangGraph Agent 设置 (Gradio版，使用核心模块) ---
-# Gradio 使用核心的系统提示，因为它包含了对预处理OCR文本和ListDirectoryFiles的说明
+# --- LangGraph Agent Setup (Gradio version, using core module) ---
+# Gradio uses the core system prompt because it includes instructions for preprocessed OCR text and ListDirectoryFiles
 system_prompt_gradio = CORE_SYSTEM_PROMPT 
 
-# 使用核心模块的函数创建Agent，但传入Gradio特定的工具列表和可选的特定提示
+# Use the core module's function to create the Agent, but pass Gradio-specific tool list and optional specific prompt
 agent_runnable_gradio, checkpointer_gradio = get_agent_runnable_and_checkpointer(
     custom_tools=tools_gradio_list,
     custom_prompt=system_prompt_gradio 
-    # debug 默认在 core_agent 中为 True
+    # debug is True by default in core_agent
 )
 
-# --- Gradio 交互逻辑 (基本保持不变) ---
+# --- Gradio Interaction Logic (Basically unchanged) ---
 def agent_chat_interface(user_message: str, history: list, image_upload: Image.Image, session_id: str):
     final_user_input = user_message
     if image_upload is not None:
         ocr_result_text = perform_ocr_gradio(image_upload)
         if user_message.strip():
-            final_user_input = f"{user_message}\n\n[附加图片OCR内容]:\n{ocr_result_text}"
+            final_user_input = f"{user_message}\n\n[Attached Image OCR Content]:\n{ocr_result_text}"
         else:
-            final_user_input = f"[图片OCR内容]:\n{ocr_result_text}"
+            final_user_input = f"[Image OCR Content]:\n{ocr_result_text}"
     
     if not final_user_input.strip() and image_upload is None:
-        history.append((user_message, "请输入您的问题或上传一张图片。"))
+        history.append((user_message, "Please enter your question or upload an image."))
         return history, session_id
 
     messages_input = [HumanMessage(content=final_user_input)]
-    # config中只需thread_id，因为checkpointer已在agent_runnable中配置
+    # Only thread_id is needed in config, as checkpointer is already configured in agent_runnable
     config = {"configurable": {"thread_id": session_id}}
     
-    bot_response_content = "抱歉，处理您的请求时出现了一些问题。"
+    bot_response_content = "Sorry, some issues occurred while processing your request."
     try:
         # print(f"[Gradio DEBUG] Calling agent with input: {final_user_input[:100]}... Tools: {[t.name for t in tools_gradio_list]}")
         result_state = agent_runnable_gradio.invoke({"messages": messages_input}, config=config)
@@ -95,39 +95,39 @@ def agent_chat_interface(user_message: str, history: list, image_upload: Image.I
             if hasattr(ai_message, 'content') and ai_message.content:
                 bot_response_content = ai_message.content
     except Exception as e:
-        bot_response_content = f"调用Agent时出错: {str(e)}"
+        bot_response_content = f"Error calling Agent: {str(e)}"
         print(f"[Gradio ERROR] Error invoking agent for session {session_id}: {e}")
         import traceback
         traceback.print_exc()
 
-    history.append((user_message if not image_upload else f"{user_message} (附带图片)", bot_response_content))
+    history.append((user_message if not image_upload else f"{user_message} (with image)", bot_response_content))
     return history, session_id
 
-# --- Gradio UI 构建 (保持不变) ---
+# --- Gradio UI Construction (Unchanged) ---
 with gr.Blocks(theme=gr.themes.Soft(), title="LangGraph ReAct Agent") as demo:
     gr.Markdown("## 🧠 LangGraph ReAct Agent (GPT-4o) - Web UI")
     gr.Markdown(
-        "与基于LangGraph和GPT-4o构建的智能助手进行交互。"
-        "您可以提问、进行计算、查询时间、搜索网页、列出项目文件，或上传图片进行文字识别。"
+        "Interact with an intelligent assistant built with LangGraph and GPT-4o."
+        "You can ask questions, perform calculations, query the time, search the web, list project files, or upload images for text recognition."
     )
     session_id_state = gr.State(lambda: str(uuid.uuid4()))
     with gr.Row():
         with gr.Column(scale=2):
             chatbot = gr.Chatbot(
-                label="聊天记录",
+                label="Chat History",
                 bubble_full_width=False,
                 avatar_images=(None, "https://raw.githubusercontent.com/gradio-app/gradio/main/gradio/components/chat_interface/processing_done.png")
             )
             user_input_textbox = gr.Textbox(
-                label="你的消息",
-                placeholder="请输入您的问题，或上传图片后在此提问...",
+                label="Your Message",
+                placeholder="Please enter your question, or ask here after uploading an image...",
                 lines=3
             )
             with gr.Row():
-                image_input_component = gr.Image(type="pil", label="上传图片 (可选，用于OCR)", sources=['upload', 'clipboard'])
+                image_input_component = gr.Image(type="pil", label="Upload Image (Optional, for OCR)", sources=['upload', 'clipboard'])
             with gr.Row():
-                send_button = gr.Button("发送 / 处理", variant="primary")
-                clear_button = gr.Button("清除聊天记录")
+                send_button = gr.Button("Send / Process", variant="primary")
+                clear_button = gr.Button("Clear Chat History")
 
     def handle_submit(user_msg, chat_history, img_upload, sess_id):
         if not user_msg.strip() and img_upload is None:
@@ -157,7 +157,7 @@ with gr.Blocks(theme=gr.themes.Soft(), title="LangGraph ReAct Agent") as demo:
         [chatbot, session_id_state, user_input_textbox, image_input_component]
     )
 
-# --- 启动 Gradio 应用 (保持不变) ---
+# --- Launch Gradio Application (Unchanged) ---
 if __name__ == "__main__":
-    print("正在启动 Gradio 应用 (Agent核心来自core_agent.py)...")
+    print("Launching Gradio application (Agent core from core_agent.py)...")
     demo.launch(server_name="0.0.0.0") 

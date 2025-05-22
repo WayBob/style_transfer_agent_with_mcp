@@ -225,7 +225,7 @@ async def apply_style_transfer(request: StyleTransferRequest) -> StyleTransferRe
 @mcp.tool()
 async def list_available_styles() -> dict:
     """List available style images in the demo directory"""
-    style_dir = os.path.join(STYTR2_PATH, 'demo', 'image_s')
+    style_dir = os.path.join(STYTR2_PATH, 'demo', 's_img')
     if os.path.exists(style_dir):
         styles = [f for f in os.listdir(style_dir) if f.endswith(('.png', '.jpg', '.jpeg'))]
         return {
@@ -242,7 +242,7 @@ async def list_available_styles() -> dict:
 @mcp.tool()
 async def list_content_images() -> dict:
     """List available content images in the demo directory"""
-    content_dir = os.path.join(STYTR2_PATH, 'demo', 'image_c')
+    content_dir = os.path.join(STYTR2_PATH, 'demo', 'c_img')
     if os.path.exists(content_dir):
         contents = [f for f in os.listdir(content_dir) if f.endswith(('.png', '.jpg', '.jpeg'))]
         return {

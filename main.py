@@ -9,7 +9,7 @@ from langchain_core.messages import HumanMessage
 # 从新创建的核心模块导入Agent创建函数和相关常量
 from core_agent import get_agent_runnable_and_checkpointer, CORE_SYSTEM_PROMPT, CORE_TOOLS_LIST
 
-# --- 日志记录设置 (这部分保留在main.py) ---
+# --- Logging Setup (This part is kept in main.py) ---
 LOG_FILENAME = 'agent_interaction.log'
 logging.basicConfig(
     level=logging.INFO,
@@ -37,88 +37,88 @@ _original_stderr = sys.stderr
 _original_input = __builtins__.input
 
 sys.stdout = StreamToLogger(logger, _original_stdout, logging.INFO)
-logger.info("--- 新的 Agent 会话开始 (main.py) ---")
-logger.info(f"标准输出将同时显示在终端并记录到日志文件: {LOG_FILENAME}")
+logger.info("--- New Agent Session Started (main.py) ---")
+logger.info(f"Standard output will be displayed in the terminal and logged to the log file: {LOG_FILENAME}")
 
 def custom_input_for_logging(prompt_message=""):
     _original_stdout.write(prompt_message)
     _original_stdout.flush()
-    logger.info(f"终端提示: {prompt_message.strip()}")
+    logger.info(f"Terminal prompt: {prompt_message.strip()}")
     user_text = _original_input()
-    logger.info(f"用户输入: {user_text}")
+    logger.info(f"User input: {user_text}")
     return user_text
 __builtins__.input = custom_input_for_logging
-logger.info("内建 input() 函数已替换，交互将被记录。")
-# --- 日志记录设置结束 ---
+logger.info("Built-in input() function has been replaced, interactions will be logged.")
+# --- Logging Setup End ---
 
-# --- Agent 初始化 (使用核心模块) ---
-# main.py 使用核心模块默认的工具和提示
-# 注意: get_agent_runnable_and_checkpointer 默认开启debug
+# --- Agent Initialization (Using core module) ---
+# main.py uses the core module's default tools and prompts
+# Note: get_agent_runnable_and_checkpointer has debug enabled by default
 agent_runnable, checkpointer = get_agent_runnable_and_checkpointer()
 
-logger.info("LangGraph ReAct Agent (from core_agent) 初始化完成。")
-logger.info(f"使用的工具: {[tool.name for tool in CORE_TOOLS_LIST]}")
-logger.info(f"使用的系统提示 (部分): {CORE_SYSTEM_PROMPT[:150]}...")
-# --- Agent 初始化结束 ---
+logger.info("LangGraph ReAct Agent (from core_agent) initialization complete.")
+logger.info(f"Tools used: {[tool.name for tool in CORE_TOOLS_LIST]}")
+logger.info(f"System prompt used (partial): {CORE_SYSTEM_PROMPT[:150]}...")
+# --- Agent Initialization End ---
 
-# --- 启动命令行交互界面 (大部分逻辑保留) ---
+# --- Start Command Line Interface (Most logic retained) ---
 _original_stdout.write("=" * 40 + "\n")
-_original_stdout.write("🧠 欢迎使用 LangGraph ReAct Agent (GPT-4o) - CLI 模式\n")
-_original_stdout.write("   Agent核心逻辑由 core_agent.py 提供\n")
-_original_stdout.write("   具有对话记忆和日志记录功能。\n")
-_original_stdout.write("输入你的问题，例如：\n")
-_original_stdout.write(" - 现在几点了？\n")
-_original_stdout.write(" - 请识别图片文字：[图片文件路径] (例如 ./example.png)\n") # 提示用户输入文件路径
-_original_stdout.write(" - 请计算 123 * (5 + 6)\n")
-_original_stdout.write(" - 东京今天的天气如何？\n")
-_original_stdout.write("输入 '退出' 可结束程序\n")
+_original_stdout.write("🧠 Welcome to LangGraph ReAct Agent (GPT-4o) - CLI Mode\n")
+_original_stdout.write("   Agent core logic provided by core_agent.py\n")
+_original_stdout.write("   With conversation memory and logging features.\n")
+_original_stdout.write("Enter your question, for example:\n")
+_original_stdout.write(" - What time is it?\n")
+_original_stdout.write(" - Please recognize image text: [Image file path] (e.g., ./example.png)\n") # Prompt user for file path
+_original_stdout.write(" - Please calculate 123 * (5 + 6)\n")
+_original_stdout.write(" - What is the weather like in Tokyo today?\n")
+_original_stdout.write("Enter 'exit' to end the program\n")
 _original_stdout.write("=" * 40 + "\n")
 _original_stdout.flush()
 
 conversation_thread_id = "cli_session_main_thread"
-logger.info(f"当前会话线程ID: {conversation_thread_id}")
+logger.info(f"Current session thread ID: {conversation_thread_id}")
 
 while True:
     try:
-        user_input_text = input("\n💬 你的输入：")
+        user_input_text = input("\n💬 Your input: ")
 
-        if user_input_text.lower() in ["exit", "退出", "quit", "q"]:
-            logger.info("用户请求退出程序。")
-            _original_stdout.write("👋 程序已退出，再见！\n")
+        if user_input_text.lower() in ["exit", "quit", "q"]:
+            logger.info("User requested to exit the program.")
+            _original_stdout.write("👋 Program exited, goodbye!\n")
             _original_stdout.flush()
             break
 
         messages_input = [HumanMessage(content=user_input_text)]
         config = {"configurable": {"thread_id": conversation_thread_id, "checkpointer": checkpointer}}
-        # 注意：需要将 checkpointer 实例传递给 invoke 的 config 中，如果 agent_runnable 内部没有自动处理
-        # LangGraph 的 create_react_agent 当传入 checkpointer 时，会自动处理持久化，通常不需要在invoke时再次指定
-        # 但为了明确，可以检查LangGraph文档。这里我们先按标准方式调用。
-        # 修正：create_react_agent返回的已经是配置好checkpointer的runnable，config中只需thread_id
+        # Note: The checkpointer instance needs to be passed to invoke's config if not automatically handled inside agent_runnable
+        # LangGraph's create_react_agent, when passed a checkpointer, automatically handles persistence, usually no need to specify again during invoke
+        # But for clarity, you can check the LangGraph documentation. Here we will call it in the standard way first.
+        # Correction: create_react_agent returns a runnable already configured with a checkpointer, only thread_id is needed in config
         config = {"configurable": {"thread_id": conversation_thread_id}}
 
 
-        logger.info(f"准备调用 Agent，输入消息: {user_input_text}")
+        logger.info(f"Preparing to call Agent, input message: {user_input_text}")
         result_state = agent_runnable.invoke({"messages": messages_input}, config=config)
-        logger.info(f"Agent 调用完成，返回状态: {result_state}")
+        logger.info(f"Agent call complete, returned state: {result_state}")
 
-        response_content = "抱歉，我好像遇到了一些麻烦，暂时无法回复您。"
+        response_content = "Sorry, I seem to have encountered some trouble and cannot reply to you at the moment."
         if result_state and "messages" in result_state and result_state["messages"]:
             ai_message = result_state["messages"][-1]
             if hasattr(ai_message, 'content'):
                 response_content = ai_message.content
             else:
-                logger.warning(f"Agent返回的最后一条消息没有content属性: {ai_message}")
+                logger.warning(f"The last message returned by the Agent does not have a content attribute: {ai_message}")
         else:
-            logger.warning(f"Agent返回的状态中没有预期的messages结构: {result_state}")
+            logger.warning(f"The state returned by the Agent does not have the expected messages structure: {result_state}")
             
-        print(f"\n🤖 Agent 回复：\n{response_content}")
+        print(f"\n🤖 Agent Reply:\n{response_content}")
 
     except KeyboardInterrupt:
-        logger.info("用户通过 Ctrl+C 中断程序。")
-        _original_stdout.write("\n👋 程序已中断，再见！\n")
+        logger.info("User interrupted the program via Ctrl+C.")
+        _original_stdout.write("\n👋 Program interrupted, goodbye!\n")
         _original_stdout.flush()
         break
     except Exception as e:
-        logger.error(f"主循环发生未捕获错误: {str(e)}", exc_info=True)
-        print(f"❌ 处理您的请求时出现严重错误：{str(e)}\n   详情请查看日志文件: {LOG_FILENAME}")
-# --- 命令行交互界面结束 ---
+        logger.error(f"Uncaught error in main loop: {str(e)}", exc_info=True)
+        print(f"❌ A critical error occurred while processing your request: {str(e)}\n   Please check the log file for details: {LOG_FILENAME}")
+# --- Command Line Interface End ---

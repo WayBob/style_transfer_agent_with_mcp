@@ -14,75 +14,75 @@ from langchain_community.tools import DuckDuckGoSearchRun
 from langchain_experimental.tools.python.tool import PythonREPLTool
 from langchain_openai import ChatOpenAI
 
-# --- 环境和模型初始化 ---
-load_dotenv() # 确保环境变量被加载
+# --- Environment and Model Initialization ---
+load_dotenv() # Ensure environment variables are loaded
 
 OPENAI_API_KEY_CORE = os.getenv("OPENAI_API_KEY")
 
 def get_core_llm():
-    """返回一个配置好的核心 ChatOpenAI LLM 实例。"""
+    """Returns a configured core ChatOpenAI LLM instance."""
     if not OPENAI_API_KEY_CORE:
-        raise ValueError("OpenAI API Key 未在 .env 文件中设置。请在启动前配置。")
+        raise ValueError("OpenAI API Key is not set in the .env file. Please configure it before starting.")
     return ChatOpenAI(
         model="gpt-4o",
         temperature=0,
         openai_api_key=OPENAI_API_KEY_CORE
     )
 
-# --- 核心工具定义 ---
+# --- Core Tool Definitions ---
 
-# OCR 工具 (文件路径版 - 用于 main.py 或需要文件路径的场景)
+# OCR Tool (File path version - for main.py or scenarios requiring file paths)
 def perform_ocr_filepath(image_path: str) -> str:
-    """使用 pytesseract 执行 OCR，识别指定路径图片中的中英文字符。"""
+    """Perform OCR using pytesseract to recognize Chinese and English characters in the image at the specified path."""    
     try:
         image = Image.open(image_path)
         text = pytesseract.image_to_string(image, lang='chi_sim+eng')
         if not text.strip():
-            return "OCR 未能识别到任何文字，或图片为空白。"
-        return f"图片 ({image_path}) OCR识别结果如下：\n{text.strip()}"
+            return "OCR failed to recognize any text, or the image is blank."
+        return f"Image ({image_path}) OCR recognition results are as follows:\n{text.strip()}"
     except FileNotFoundError:
-        return f"OCR识别失败：图片文件 {image_path} 未找到。"
+        return f"OCR recognition failed: Image file {image_path} not found."
     except Exception as e:
-        return f"OCR处理图片 {image_path} 失败，错误信息：{str(e)}"
+        return f"Failed to process image {image_path} with OCR, error message: {str(e)}"
 
 ocr_tool_filepath = Tool.from_function(
     func=perform_ocr_filepath,
     name="ImageFileOCR",
-    description="当用户提供图片文件路径并要求识别图像中的文字时，使用此工具。例如：'请识别 ./example.png 中的文字'。输入应该是图片的有效本地文件路径字符串。"
+    description="Use this tool when the user provides an image file path and asks to recognize text in the image. For example: 'Please recognize the text in ./example.png'. Input should be a valid local file path string for the image."
 )
 
-# 时间工具
+# Time Tool
 def get_current_time_core(_: str = "") -> str:
     now = datetime.now()
-    return f"当前时间是：{now.strftime('%Y-%m-%d %H:%M:%S')}"
+    return f"The current time is: {now.strftime('%Y-%m-%d %H:%M:%S')}"
 
 time_tool_core = Tool.from_function(
     func=get_current_time_core,
     name="GetCurrentTime",
-    description="当用户询问当前时间或日期时，使用此工具获取当前的系统日期和时间。此工具不需要任何输入。"
+    description="Use this tool to get the current system date and time when the user asks for the current time or date. This tool does not require any input."
 )
 
-# 搜索工具
+# Search Tool
 search_tool_instance_core = DuckDuckGoSearchRun()
 search_tool_core = Tool.from_function(
     func=search_tool_instance_core.run,
     name="WebSearch",
-    description="当你需要回答关于新闻、天气、事件、人物、地点或任何需要从互联网获取最新信息的问题时，使用此工具。输入应为清晰的搜索查询。"
+    description="Use this tool when you need to answer questions about news, weather, events, people, places, or anything that requires up-to-date information from the internet. The input should be a clear search query."
 )
 
-# 计算器工具
+# Calculator Tool
 calculator_tool_instance_core = PythonREPLTool()
 calculator_tool_core = Tool.from_function(
     func=calculator_tool_instance_core.run,
     name="Calculator",
-    description="当用户要求执行数学计算或解答数学问题时，使用此工具。例如：'计算 123 * (5 + 6)'。输入应为有效的 Python 数学表达式。"
+    description="Use this tool when the user asks to perform mathematical calculations or solve math problems. For example: 'Calculate 123 * (5 + 6)'. Input should be a valid Python mathematical expression."
 )
 
-# 新增：列出目录内容的工具
+# New: Tool to list directory contents
 def list_directory_files_core(_: str = "") -> str:
-    """列出当前工作目录下的图片、Python脚本和Markdown文件。"""
+    """List image, Python script, and Markdown files in the current working directory."""
     try:
-        files = os.listdir('.') # 获取当前目录所有文件和文件夹
+        files = os.listdir('.') # Get all files and folders in the current directory
         image_extensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp']
         py_extensions = ['.py']
         md_extensions = ['.md']
@@ -92,55 +92,55 @@ def list_directory_files_core(_: str = "") -> str:
         md_files = [f for f in files if os.path.isfile(f) and os.path.splitext(f)[1].lower() in md_extensions]
         
         if not image_files and not py_files and not md_files:
-            return "当前目录中未找到指定的图片、Python或Markdown文件。"
+            return "No specified image, Python, or Markdown files found in the current directory."
         
-        response_lines = ["在当前工作目录中找到以下文件："]
+        response_lines = ["The following files were found in the current working directory:"]
         if image_files:
-            response_lines.append("\n图片文件:")
+            response_lines.append("\nImage files:")
             response_lines.extend([f"  - {f}" for f in image_files])
         if py_files:
-            response_lines.append("\nPython 脚本 (.py):")
+            response_lines.append("\nPython scripts (.py):")
             response_lines.extend([f"  - {f}" for f in py_files])
         if md_files:
-            response_lines.append("\nMarkdown 文件 (.md):")
+            response_lines.append("\nMarkdown files (.md):")
             response_lines.extend([f"  - {f}" for f in md_files])
             
         return "\n".join(response_lines)
     except Exception as e:
-        return f"列出目录文件时出错: {str(e)}"
+        return f"Error listing directory files: {str(e)}"
 
 list_files_tool_core = Tool.from_function(
     func=list_directory_files_core,
     name="ListDirectoryFiles",
-    description="当用户询问当前项目或工作目录下有哪些图片、Python脚本(.py)或Markdown文档(.md)时使用此工具。此工具不需要任何输入。"
+    description="Use this tool when the user asks what image, Python script (.py), or Markdown document (.md) files are in the current project or working directory. This tool does not require any input."
 )
-# --- 核心工具定义结束 ---
+# --- Core Tool Definitions End ---
 
 CORE_TOOLS_LIST = [
     search_tool_core,
     calculator_tool_core,
     time_tool_core,
     ocr_tool_filepath,
-    list_files_tool_core, # 添加新工具到列表
+    list_files_tool_core, # Add new tool to the list
 ]
 
-# --- 核心系统提示 ---
+# --- Core System Prompt ---
 CORE_SYSTEM_PROMPT = (
-    "你是一个乐于助人的人工智能助手。请理解用户的问题并尽力用中文清晰地回答。"
-    "当你需要回答关于新闻、天气、特定地点实时信息或任何需要从互联网获取最新信息的问题时，请主动使用 WebSearch 工具。"
-    "对于计算问题，请使用 Calculator 工具。"
-    "如果你接收到的是图片文件路径，并且被要求识别图片内容，请使用 ImageFileOCR 工具。"
-    "对于时间查询，请使用 GetCurrentTime 工具。"
-    "如果你需要知道当前项目或工作目录下有哪些图片、Python脚本或Markdown文件，请使用 ListDirectoryFiles 工具。"
-    "如果用户提供了图片OCR的文本内容（例如，在Gradio应用中，文本会预先提取并提供给你），请直接使用该文本内容进行理解和回答，不要尝试再次调用OCR工具处理原始图片。"
-    "如果需要，请恰当地使用你拥有的工具来搜集信息。"
+    "You are a helpful AI assistant. Please understand the user's questions and do your best to answer them clearly.\n"
+    "When you need to answer questions about news, weather, real-time information about specific locations, or any information that requires the latest updates from the internet, please proactively use the WebSearch tool.\n"
+    "For calculation problems, please use the Calculator tool.\n"
+    "If you receive an image file path and are asked to recognize the content of the image, please use the ImageFileOCR tool.\n"
+    "For time queries, please use the GetCurrentTime tool.\n"
+    "If you need to know what image, Python script, or Markdown files are in the current project or working directory, please use the ListDirectoryFiles tool.\n"
+    "If the user provides the OCR text content of an image (for example, in a Gradio application, the text will be pre-extracted and provided to you), please directly use that text content for understanding and answering, and do not attempt to call the OCR tool again to process the original image.\n"
+    "If necessary, please use the tools you have appropriately to gather information."
 )
 
-# --- Agent 创建函数 ---
+# --- Agent Creation Function ---
 def get_agent_runnable_and_checkpointer(custom_tools=None, custom_prompt=None):
     """
-    创建并返回一个配置好的 LangGraph ReAct Agent runnable 和一个 InMemorySaver checkpointer。
-    允许通过参数覆盖默认的工具列表和系统提示。
+    Creates and returns a configured LangGraph ReAct Agent runnable and an InMemorySaver checkpointer.
+    Allows overriding the default tool list and system prompt via parameters.
     """
     llm = get_core_llm()
     tools_to_use = custom_tools if custom_tools is not None else CORE_TOOLS_LIST
@@ -153,27 +153,27 @@ def get_agent_runnable_and_checkpointer(custom_tools=None, custom_prompt=None):
         tools=tools_to_use,
         checkpointer=checkpointer,
         prompt=prompt_to_use,
-        debug=True # 默认开启debug，调用者可按需关闭或通过其他方式配置
+        debug=True # Debug is enabled by default, caller can disable or configure it through other means as needed
     )
     return agent_runnable, checkpointer
 
 if __name__ == '__main__':
-    # 此部分用于直接测试 core_agent.py 的功能
-    print("测试核心 Agent 配置...")
+    # This part is used for directly testing the functionality of core_agent.py
+    print("Testing core Agent configuration...")
     test_llm = get_core_llm()
-    print(f"LLM 类型: {type(test_llm)}")
-    print(f"默认工具数量: {len(CORE_TOOLS_LIST)}")
+    print(f"LLM type: {type(test_llm)}")
+    print(f"Default number of tools: {len(CORE_TOOLS_LIST)}")
     for tool in CORE_TOOLS_LIST:
-        print(f" - 工具: {tool.name}, 描述: {tool.description[:70]}...") # 增加描述长度
-    print(f"默认系统提示 (部分): \n{CORE_SYSTEM_PROMPT[:250]}...") # 增加提示显示长度
+        print(f" - Tool: {tool.name}, Description: {tool.description[:70]}...") # Increase description length
+    print(f"Default system prompt (partial): \n{CORE_SYSTEM_PROMPT[:250]}...") # Increase prompt display length
     
     runnable, chkptr = get_agent_runnable_and_checkpointer()
-    print(f"Agent Runnable 类型: {type(runnable)}")
-    print(f"Checkpointer 类型: {type(chkptr)}")
+    print(f"Agent Runnable type: {type(runnable)}")
+    print(f"Checkpointer type: {type(chkptr)}")
     
-    # 测试新工具
-    print("\n测试 ListDirectoryFiles 工具:")
-    # 先创建一些测试文件
+    # Test new tool
+    print("\nTesting ListDirectoryFiles tool:")
+    # First, create some test files
     test_files_created = []
     try:
         with open("test_image.png", "w") as f: f.write("png_content"); test_files_created.append("test_image.png")
@@ -185,6 +185,6 @@ if __name__ == '__main__':
         for tf in test_files_created:
             if os.path.exists(tf):
                 os.remove(tf)
-        print("测试文件已清理。")
+        print("Test files have been cleaned up.")
 
-    print("核心 Agent 配置测试完成。") 
+    print("Core Agent configuration test complete.") 

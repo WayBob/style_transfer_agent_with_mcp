@@ -21,47 +21,47 @@ from pydantic import BaseModel, Field
 # Import the style transfer tool
 from style_transfer_tool import style_transfer
 
-# 设置日志
+# Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# 初始化 LLM
+# Initialize LLM
 llm = ChatOpenAI(
     model="gpt-4o",
-    temperature=0,  # 降低温度以获得更一致的输出
+    temperature=0,  # Lower temperature for more consistent output
     api_key=os.getenv("OPENAI_API_KEY"),
 )
 
-# OCR 工具
+# OCR tool
 @tool
 def ocr_tool(image_path: str) -> str:
-    """对图片进行OCR文字识别，返回识别到的文字内容。"""
-    return f"[模拟OCR结果] 这是图片 {image_path} 的文字内容：示例文本"
+    """Perform OCR on an image and return the recognized text content."""
+    return f"[Simulated OCR Result] This is the text content of image {image_path}: Sample Text"
 
-# 获取时间工具
+# Get time tool
 @tool
 def get_current_time() -> str:
-    """获取当前的北京时间。"""
+    """Get the current Beijing time."""
     beijing_tz = pytz.timezone('Asia/Shanghai')
     current_time = datetime.now(beijing_tz)
-    return current_time.strftime("%Y年%m月%d日 %H:%M:%S")
+    return current_time.strftime("%Y-%m-%d %H:%M:%S")
 
-# 网页搜索工具
+# Web search tool
 search = TavilySearchResults(
     max_results=5,
-    description="搜索网页获取相关信息。输入应该是一个搜索查询。"
+    description="Search the web for relevant information. Input should be a search query."
 )
 
-# 计算器工具
+# Calculator tool
 @tool
 def calculator(expression: str) -> str:
-    """计算数学表达式的结果。输入应该是一个有效的数学表达式，例如：2+2、10*5、100/4等。"""
+    """Calculate the result of a mathematical expression. Input should be a valid mathematical expression, e.g., 2+2, 10*5, 100/4, etc."""
     try:
-        # 安全评估数学表达式
+        # Safely evaluate mathematical expression
         import ast
         import operator as op
         
-        # 定义允许的操作符
+        # Define allowed operators
         operators = {
             ast.Add: op.add,
             ast.Sub: op.sub,
@@ -93,14 +93,14 @@ def calculator(expression: str) -> str:
         result = eval_expr(expression.replace('^', '**'))
         return str(result)
     except Exception as e:
-        # 如果安全评估失败，使用原始的 eval（仅用于简单数学表达式）
+        # If safe evaluation fails, use original eval (for simple math expressions only)
         try:
             result = eval(expression)
             return str(result)
         except Exception as e:
-            return f"计算错误：{str(e)}"
+            return f"Calculation error: {str(e)}"
 
-# 组合所有工具
+# Combine all tools
 tools = [
     ocr_tool,
     get_current_time,
@@ -109,16 +109,16 @@ tools = [
     style_transfer
 ]
 
-# 使用结构化的聊天代理模板
-system_prompt = """你是一个有帮助的AI助手。你可以使用以下工具来帮助回答问题：
+# Use structured chat agent template
+system_prompt = """You are a helpful AI assistant. You can use the following tools to help answer questions:
 
 {tools}
 
-使用 json blob 来指定一个工具，通过提供 action 键（工具名称）和 action_input 键（工具输入）。
+Use a json blob to specify a tool by providing an action key (tool name) and an action_input key (tool input).
 
-有效的 "action" 值：{tool_names} 或 "Final Answer"
+Valid "action" values: {tool_names} or "Final Answer"
 
-每个 JSON_BLOB 只提供一个动作，格式如下：
+Provide only one action per JSON_BLOB, in the following format:
 
 ```
 {{
@@ -127,38 +127,38 @@ system_prompt = """你是一个有帮助的AI助手。你可以使用以下工�
 }}
 ```
 
-请遵循以下格式：
+Follow this format:
 
-问题：需要回答的输入问题
-思考：考虑之前和后续的步骤
-动作：
+Question: The input question to answer
+Thought: Consider previous and subsequent steps
+Action:
 ```
 $JSON_BLOB
 ```
-观察：动作结果
-...（重复 思考/动作/观察 N 次）
-思考：我知道该如何回答了
-动作：
+Observation: The result of the action
+... (repeat Thought/Action/Observation N times)
+Thought: I know how to answer now
+Action:
 ```
 {{
   "action": "Final Answer",
-  "action_input": "对人类的最终回答"
+  "action_input": "The final answer to the human"
 }}
 ```
 
-开始！记住始终以有效的 json blob 响应单个动作。如有必要使用工具。如果合适，可以直接回答。
-格式是 动作:```$JSON_BLOB```然后是 观察
+Begin! Remember to always respond with a single action in a valid json blob. Use tools if necessary. If appropriate, answer directly.
+The format is Action:```$JSON_BLOB``` followed by Observation
 
-特别注意工具的输入格式：
-- style_transfer 工具需要 content_image_path 和 style_image_path 两个参数
-- 所有参数都应该是正确的类型（字符串、数字等）
+Pay special attention to the input format of the tools:
+- The style_transfer tool requires content_image_path and style_image_path parameters
+- All parameters should be of the correct type (string, number, etc.)
 """
 
 human_prompt = """{input}
 
 {agent_scratchpad}
 
-（提醒：无论如何都要以 JSON blob 格式响应）"""
+(Reminder: Respond in JSON blob format no matter what)"""
 
 prompt = ChatPromptTemplate.from_messages([
     ("system", system_prompt),
@@ -166,14 +166,14 @@ prompt = ChatPromptTemplate.from_messages([
     ("human", human_prompt),
 ])
 
-# 创建结构化聊天代理
+# Create structured chat agent
 agent = create_structured_chat_agent(
     llm=llm,
     tools=tools,
     prompt=prompt
 )
 
-# 创建 agent executor
+# Create agent executor
 agent_executor = AgentExecutor(
     agent=agent,
     tools=tools,
@@ -184,51 +184,51 @@ agent_executor = AgentExecutor(
 )
 
 def main():
-    print("AI助手已启动！输入 'quit' 或 'exit' 退出。")
-    print("我现在可以进行风格转换了！试试让我将一张图片转换成另一种艺术风格。")
+    print("AI assistant started! Type 'quit' or 'exit' to quit.")
+    print("I can now perform style transfer! Try asking me to transfer the style of one image to another.")
     print("-" * 50)
     
-    # 示例对话
+    # Example conversation
     example_prompts = [
-        "请将 StyTR-2/demo/c_img/2_10_0_0_512_512.png 转换成 StyTR-2/demo/s_img/LevelSequence_Vaihingen.0002.png 的艺术风格",
-        "现在几点了？",
-        "帮我搜索一下最新的AI技术发展",
-        "计算 1234 * 5678"
+        "Please transfer the style of StyTR-2/demo/c_img/2_10_0_0_512_512.png to StyTR-2/demo/s_img/LevelSequence_Vaihingen.0002.png",
+        "What time is it?",
+        "Help me search for the latest AI technology developments",
+        "Calculate 1234 * 5678"
     ]
     
-    print("\n示例问题：")
+    print("\nExample questions:")
     for i, prompt_text in enumerate(example_prompts, 1):
         print(f"{i}. {prompt_text}")
     print("-" * 50)
     
     while True:
-        user_input = input("\n请输入您的问题: ").strip()
+        user_input = input("\nPlease enter your question: ").strip()
         
-        if user_input.lower() in ['quit', 'exit', '退出']:
-            print("再见！")
+        if user_input.lower() in ['quit', 'exit']:
+            print("Goodbye!")
             break
         
         if not user_input:
             continue
         
         try:
-            # 运行 agent
+            # Run agent
             result = agent_executor.invoke({"input": user_input})
-            print(f"\n回答: {result['output']}")
+            print(f"\nAnswer: {result['output']}")
             
-            # 调试：显示中间步骤
+            # Debug: Show intermediate steps
             if 'intermediate_steps' in result and result['intermediate_steps']:
-                print("\n[调试信息] 中间步骤:")
+                print("\n[Debug Info] Intermediate steps:")
                 for i, step in enumerate(result['intermediate_steps']):
                     action, observation = step
-                    print(f"步骤 {i+1}:")
-                    print(f"  工具: {action.tool}")
-                    print(f"  输入: {action.tool_input}")
-                    print(f"  结果: {observation[:100]}..." if len(str(observation)) > 100 else f"  结果: {observation}")
+                    print(f"Step {i+1}:")
+                    print(f"  Tool: {action.tool}")
+                    print(f"  Input: {action.tool_input}")
+                    print(f"  Result: {str(observation)[:100]}..." if len(str(observation)) > 100 else f"  Result: {observation}")
                     
         except Exception as e:
-            logger.error(f"处理请求时出错: {str(e)}")
-            print(f"抱歉，处理您的请求时出现错误：{str(e)}")
+            logger.error(f"Error processing request: {str(e)}")
+            print(f"Sorry, an error occurred while processing your request: {str(e)}")
             import traceback
             traceback.print_exc()
 
