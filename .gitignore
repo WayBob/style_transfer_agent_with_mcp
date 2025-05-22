@@ -33,6 +33,6 @@ env.bak/
 checkpoints/
 
 #StyTR-2
-StyTR-2/checkpoints/
-StyTR-2/models/checkpoints/
-StyTR-2/models/experiments/
+
+StyTR-2/experiments/
+*.pth
