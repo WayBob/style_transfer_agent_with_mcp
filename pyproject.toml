@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "dotenv>=0.9.9",
     "duckduckgo-search>=8.0.2",
     "gradio>=5.30.0",
     "langchain>=0.3.25",
@@ -12,8 +13,15 @@ dependencies = [
     "langchain-experimental>=0.3.4",
     "langchain-openai>=0.3.17",
     "langgraph>=0.4.5",
+    "matplotlib>=3.10.3",
+    "mcp[cli]>=1.9.1",
+    "nvitop>=1.5.0",
     "openai>=1.79.0",
     "pillow>=11.2.1",
     "pytesseract>=0.3.13",
     "python-dotenv>=1.1.0",
+    "scikit-learn>=1.6.1",
+    "torch>=2.7.0",
+    "torchvision>=0.22.0",
+    "tqdm>=4.67.1",
 ]

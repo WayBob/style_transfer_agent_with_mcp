@@ -28,3 +28,11 @@ env.bak/
 
 # macOS specific
 .DS_Store
+
+#Checkpoints
+checkpoints/
+
+#StyTR-2
+StyTR-2/checkpoints/
+StyTR-2/models/checkpoints/
+StyTR-2/models/experiments/
