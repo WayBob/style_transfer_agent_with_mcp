@@ -1,24 +1,22 @@
 """
-Basic Agent with Style Transfer Tool
-This is an enhanced version of basic_agent.py that includes style transfer functionality
+Fixed version of Basic Agent with Style Transfer Tool
+This version properly handles tool inputs for style transfer
 """
 
+import json
 import logging
 import os
 import sys
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
-from urllib import parse
 
 import pytz
-from langchain.agents import AgentExecutor, create_react_agent
-from langchain.prompts import PromptTemplate
-from langchain.schema import AgentAction, AgentFinish
+from langchain.agents import AgentExecutor, create_structured_chat_agent
+from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.tools import BaseTool, StructuredTool, tool
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
-from typing_extensions import TypedDict
 
 # Import the style transfer tool
 from style_transfer_tool import style_transfer
@@ -27,24 +25,10 @@ from style_transfer_tool import style_transfer
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Redirect stdout to log
-class LoggerWriter:
-    def __init__(self, level):
-        self.level = level
-
-    def write(self, message):
-        if message.rstrip() != "":
-            self.level(message.rstrip())
-
-    def flush(self):
-        pass
-
-sys.stdout = LoggerWriter(logger.info)
-
 # 初始化 LLM
 llm = ChatOpenAI(
     model="gpt-4o",
-    temperature=0.7,
+    temperature=0,  # 降低温度以获得更一致的输出
     api_key=os.getenv("OPENAI_API_KEY"),
 )
 
@@ -73,57 +57,82 @@ search = TavilySearchResults(
 def calculator(expression: str) -> str:
     """计算数学表达式的结果。输入应该是一个有效的数学表达式，例如：2+2、10*5、100/4等。"""
     try:
-        result = eval(expression)
+        # 安全评估数学表达式
+        import ast
+        import operator as op
+        
+        # 定义允许的操作符
+        operators = {
+            ast.Add: op.add,
+            ast.Sub: op.sub,
+            ast.Mult: op.mul,
+            ast.Div: op.truediv,
+            ast.Pow: op.pow,
+            ast.USub: op.neg,
+        }
+        
+        def eval_expr(expr):
+            """
+            >>> eval_expr('2^3')
+            8
+            >>> eval_expr('2+3*4')
+            14
+            """
+            return eval_(ast.parse(expr, mode='eval').body)
+        
+        def eval_(node):
+            if isinstance(node, ast.Num):  # <number>
+                return node.n
+            elif isinstance(node, ast.BinOp):  # <left> <operator> <right>
+                return operators[type(node.op)](eval_(node.left), eval_(node.right))
+            elif isinstance(node, ast.UnaryOp):  # <operator> <operand> e.g., -1
+                return operators[type(node.op)](eval_(node.operand))
+            else:
+                raise TypeError(node)
+        
+        result = eval_expr(expression.replace('^', '**'))
         return str(result)
     except Exception as e:
-        return f"计算错误：{str(e)}"
+        # 如果安全评估失败，使用原始的 eval（仅用于简单数学表达式）
+        try:
+            result = eval(expression)
+            return str(result)
+        except Exception as e:
+            return f"计算错误：{str(e)}"
 
-# 组合所有工具（包括风格转换工具）
+# 组合所有工具
 tools = [
     ocr_tool,
     get_current_time,
     search,
     calculator,
-    style_transfer  # 添加风格转换工具
+    style_transfer
 ]
 
-# 创建 ReAct prompt 模板
-prompt_template = """你是一个有帮助的AI助手。你可以使用以下工具来帮助回答问题：
+# 使用结构化的聊天代理模板
+system_prompt = """你是一个有帮助的AI助手。你可以使用以下工具来帮助回答问题：
 
 {tools}
 
-使用以下格式回答：
+请用中文回答用户的问题。
 
-Question: 需要回答的问题
-Thought: 你应该思考要做什么
-Action: 要采取的动作，应该是 [{tool_names}] 中的一个
-Action Input: 动作的输入
-Observation: 动作的结果
-... (这个 Thought/Action/Action Input/Observation 可以重复多次)
-Thought: 我现在知道最终答案了
-Final Answer: 原始问题的最终答案
+当需要使用工具时，请严格按照工具的参数要求提供输入。
+特别注意：
+- style_transfer 工具需要 content_image_path 和 style_image_path 两个参数
+- 所有参数都应该是正确的类型（字符串、数字等）
+"""
 
-注意：
-1. 请用中文回答用户的问题
-2. 在使用工具时，确保提供正确的输入格式
-3. 如果需要进行风格转换，使用 style_transfer 工具，需要提供内容图片路径和风格图片路径
+human_prompt = "{input}"
 
-开始！
+prompt = ChatPromptTemplate.from_messages([
+    ("system", system_prompt),
+    MessagesPlaceholder(variable_name="chat_history", optional=True),
+    ("human", human_prompt),
+    MessagesPlaceholder(variable_name="agent_scratchpad"),
+])
 
-Question: {input}
-Thought: {agent_scratchpad}"""
-
-prompt = PromptTemplate(
-    template=prompt_template,
-    input_variables=["input", "agent_scratchpad"],
-    partial_variables={
-        "tools": "\n".join([f"{tool.name}: {tool.description}" for tool in tools]),
-        "tool_names": ", ".join([tool.name for tool in tools])
-    }
-)
-
-# 创建 agent
-agent = create_react_agent(
+# 创建结构化聊天代理
+agent = create_structured_chat_agent(
     llm=llm,
     tools=tools,
     prompt=prompt
@@ -135,7 +144,8 @@ agent_executor = AgentExecutor(
     tools=tools,
     verbose=True,
     handle_parsing_errors=True,
-    max_iterations=10
+    max_iterations=5,
+    return_intermediate_steps=True,
 )
 
 def main():
@@ -152,8 +162,8 @@ def main():
     ]
     
     print("\n示例问题：")
-    for i, prompt in enumerate(example_prompts, 1):
-        print(f"{i}. {prompt}")
+    for i, prompt_text in enumerate(example_prompts, 1):
+        print(f"{i}. {prompt_text}")
     print("-" * 50)
     
     while True:
@@ -170,9 +180,22 @@ def main():
             # 运行 agent
             result = agent_executor.invoke({"input": user_input})
             print(f"\n回答: {result['output']}")
+            
+            # 调试：显示中间步骤
+            if 'intermediate_steps' in result and result['intermediate_steps']:
+                print("\n[调试信息] 中间步骤:")
+                for i, step in enumerate(result['intermediate_steps']):
+                    action, observation = step
+                    print(f"步骤 {i+1}:")
+                    print(f"  工具: {action.tool}")
+                    print(f"  输入: {action.tool_input}")
+                    print(f"  结果: {observation[:100]}..." if len(str(observation)) > 100 else f"  结果: {observation}")
+                    
         except Exception as e:
             logger.error(f"处理请求时出错: {str(e)}")
             print(f"抱歉，处理您的请求时出现错误：{str(e)}")
+            import traceback
+            traceback.print_exc()
 
 if __name__ == "__main__":
     main() 

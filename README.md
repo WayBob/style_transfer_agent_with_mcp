@@ -1,8 +1,8 @@
 [简体中文](./documentation/README_zh.md) | English
 
-# LangGraph ReAct Agent with Style Transfer
+# LangGraph ReAct Agent with Artistic Style Transfer
 
-A powerful AI agent built with LangGraph and OpenAI's GPT-4o, featuring ReAct (Reasoning and Acting) capabilities, multiple tools, and artistic style transfer functionality.
+A powerful AI agent built with LangGraph and OpenAI's GPT-4o, featuring ReAct (Reasoning and Acting) capabilities, multiple tools, and artistic style transfer functionality powered by StyTR-2.
 
 ## 🌟 Features
 
@@ -13,11 +13,12 @@ A powerful AI agent built with LangGraph and OpenAI's GPT-4o, featuring ReAct (R
 - **Comprehensive Logging** to `agent_interaction.log`
 
 ### Available Tools
-1. **Image OCR** - Extract text from images using Tesseract
-2. **Current Time** - Get current Beijing time
-3. **Web Search** - Search the web for real-time information
-4. **Calculator** - Perform mathematical calculations
-5. **Style Transfer** - Apply artistic styles to images using StyTR-2
+1. **Style Transfer** 🎨 - Apply artistic styles to images using StyTR-2
+2. **Image OCR** - Extract text from images using Tesseract
+3. **Current Time** - Get current Beijing time
+4. **Web Search** - Search the web for real-time information
+5. **Calculator** - Perform mathematical calculations
+6. **List Files** - List project files (images, Python scripts, Markdown)
 
 ## 🚀 Quick Start
 
@@ -60,98 +61,120 @@ Or follow manual steps:
    OPENAI_API_KEY="your_openai_api_key_here"
    ```
 
-5. **Download Style Transfer Models** (if using style transfer):
+5. **Download Style Transfer Models**:
    - Download the decoder model from [Google Drive](https://drive.google.com/file/d/1fIIVMTA_tPuaAAFtqizr6sd1XV7CX6F9/view?usp=sharing)
    - Place it in `StyTR-2/experiments/decoder_iter_160000.pth`
+   - The other required model files should already be in the repository
 
 ## 💻 Usage
 
-### 🎯 Recommended: Full Agent with Style Transfer
+### 🎨 Style Transfer Agent (Recommended)
 
-For a complete, ready-to-use agent with all features including style transfer:
+The most feature-rich option with all tools including artistic style transfer:
 
 ```bash
 python basic_agent_with_style_transfer.py
 ```
 
-**Example conversations:**
+**Example Conversations:**
+
 ```
 You: Please apply the artistic style from StyTR-2/demo/image_s/LevelSequence_Vaihingen.0000.png to StyTR-2/demo/image_c/2_10_0_0_512_512.png
 
-Agent: [Automatically processes and creates stylized image]
+Agent: [Processes the images and creates a stylized output]
+Output: Style transfer completed! Output saved to: stylized_2_10_0_0_512_512_with_LevelSequence_Vaihingen.0000.jpg
 
 You: What time is it now?
 
-Agent: [Returns current Beijing time]
+Agent: The current time is: 2024年05月23日 15:30:45
 
-You: Search for the latest AI news
+You: Search for the latest developments in AI art generation
 
-Agent: [Searches and returns results]
+Agent: [Searches and returns current information about AI art tools]
+
+You: Calculate 1234 * 5678
+
+Agent: 1234 * 5678 = 7,006,652
 ```
 
-### Other Usage Options
+### Command-Line Interface (Basic Tools Only)
 
-#### 1. Basic Command-Line Interface (without style transfer)
+For a simpler agent without style transfer:
+
 ```bash
 python main.py
 ```
-Interactive chat with basic tools (OCR, time, search, calculator).
 
-#### 2. Gradio Web Interface
+This version includes OCR, time, search, calculator, and file listing tools but not style transfer.
+
+### Gradio Web Interface
+
+For a web-based interface:
+
 ```bash
 python gradio_app.py
 ```
+
 Access the web UI at `http://localhost:7860`
 
-#### 3. Test Style Transfer Functionality
-```bash
-python test_style_transfer_tool.py
+**Note**: The Gradio interface doesn't include style transfer by default. It focuses on OCR and other basic tools.
+
+## 🎨 Style Transfer Details
+
+### How It Works
+
+The style transfer feature uses the StyTR-2 (Style Transformer 2) model, which:
+- Takes two images as input: a content image and a style image
+- Applies the artistic style of the style image to the content image
+- Preserves the structure and content while transforming the artistic appearance
+
+### Usage Examples
+
+#### Basic Style Transfer
 ```
-Verify that style transfer is working correctly.
-
-## 🎨 Style Transfer Integration Guide
-
-### Which File to Use?
-
-| File | Purpose | When to Use |
-|------|---------|-------------|
-| `basic_agent_with_style_transfer.py` | **Complete working agent** | Want to use immediately |
-| `style_transfer_tool.py` | Langchain tool module | Integrate into your own code |
-| `style_transfer_mcp_server.py` | MCP server | Need cross-application usage |
-| `test_style_transfer_tool.py` | Test script | Verify functionality |
-
-### Integration Options
-
-#### Option 1: Use the Complete Agent (Recommended)
-```bash
-python basic_agent_with_style_transfer.py
+Please convert StyTR-2/demo/image_c/2_10_0_0_512_512.png into the artistic style of StyTR-2/demo/image_s/LevelSequence_Vaihingen.0000.png
 ```
 
-#### Option 2: Integrate into Your Own Agent
+#### Custom Style Strength
+The style transfer tool supports an `alpha` parameter (0.0-1.0) to control style strength:
+- `alpha=1.0` (default): Full style transfer
+- `alpha=0.8`: 80% style, 20% original content
+- `alpha=0.5`: Balanced mix of style and content
+
+### Direct Tool Usage (Without Agent)
+
+You can also use the style transfer tool programmatically:
+
 ```python
 from style_transfer_tool import style_transfer
 
-# Add to your tools list
-tools = [
-    # ... other tools
-    style_transfer
-]
+# Basic usage
+result = style_transfer.invoke({
+    "content_image_path": "path/to/content.jpg",
+    "style_image_path": "path/to/style.jpg"
+})
 
-# Use in your agent
+# With custom alpha
 result = style_transfer.invoke({
     "content_image_path": "path/to/content.jpg",
     "style_image_path": "path/to/style.jpg",
-    "alpha": 0.8  # Style strength (0.0-1.0)
+    "alpha": 0.8,  # 80% style strength
+    "output_path": "my_stylized_image.jpg"  # Optional custom output path
 })
 ```
 
-#### Option 3: Use as MCP Server
-```bash
-# Start the server
-python style_transfer_mcp_server.py
+### Test the Style Transfer Tool
 
-# Configure your MCP client to connect to the server
+To verify the style transfer functionality is working correctly:
+
+```bash
+python test_style_transfer_tool.py
 ```
+
+This will run a comprehensive test including:
+- Model file verification
+- Direct tool testing
+- Langchain integration testing
 
 ## 🏗️ Project Structure
 
@@ -160,12 +183,16 @@ python style_transfer_mcp_server.py
 ├── core_agent.py                    # Core agent logic and tool definitions
 ├── main.py                          # Basic command-line interface
 ├── gradio_app.py                    # Gradio web UI
-├── basic_agent_with_style_transfer.py # ⭐ Complete agent with style transfer
-├── style_transfer_tool.py           # Langchain tool for style transfer
+├── basic_agent_with_style_transfer.py # Complete agent with style transfer
+├── style_transfer_tool.py           # Style transfer Langchain tool
 ├── style_transfer_mcp_server.py     # MCP server for style transfer
 ├── test_style_transfer_tool.py      # Style transfer test script
 ├── setup.sh                         # Quick setup script
 ├── StyTR-2/                         # Style transfer model files
+│   ├── demo/                        # Demo images
+│   │   ├── image_c/                 # Content images
+│   │   └── image_s/                 # Style images
+│   └── experiments/                 # Model weights
 ├── documentation/                   # Additional documentation
 │   ├── README_zh.md                 # Chinese documentation
 │   ├── style_transfer_guide.md      # Style transfer guide
@@ -173,59 +200,52 @@ python style_transfer_mcp_server.py
 └── .env                             # API keys (create this file)
 ```
 
-## 🔧 Advanced Configuration
+## 🔧 Technical Details
 
-### Custom Tools
-Add custom tools by modifying `core_agent.py`:
+### Model Architecture
 
-```python
-from langchain_core.tools import tool
+The style transfer feature uses StyTR-2, which employs:
+- **Vision Transformer (ViT)** for feature extraction
+- **Style-Attentional Network** for style transfer
+- **Multi-scale feature matching** for better quality
 
-@tool
-def my_custom_tool(input: str) -> str:
-    """Description of your tool"""
-    return "Tool output"
-```
+### Performance Considerations
 
-### Model Configuration
-The agent uses GPT-4o by default. Modify in `core_agent.py`:
+- **GPU Recommended**: Style transfer is much faster on CUDA-enabled GPUs
+- **CPU Fallback**: The tool automatically falls back to CPU if no GPU is available
+- **Processing Time**: 
+  - GPU: 2-5 seconds per image
+  - CPU: 20-60 seconds per image
+- **Memory Usage**: Approximately 2-4 GB during processing
 
-```python
-def get_core_llm():
-    return ChatOpenAI(
-        model="gpt-4o",  # Change model here
-        temperature=0.0,
-        streaming=True
-    )
-```
+### Supported Image Formats
 
-### Style Transfer Parameters
-- `alpha`: Style strength (0.0-1.0)
-  - 0.0 = Original content
-  - 1.0 = Maximum style transfer
-  - 0.8 = Recommended balance
-
-## 📚 Documentation
-
-- [中文文档](./documentation/README_zh.md)
-- [Style Transfer Guide](./documentation/style_transfer_guide.md)
-- [Integration Summary](./documentation/STYLE_TRANSFER_INTEGRATION_SUMMARY.md)
+- Input: PNG, JPG, JPEG, BMP, GIF
+- Output: JPG (default), can be customized
+- Recommended size: 512x512 pixels (automatically resized if different)
 
 ## 🐛 Troubleshooting
 
 ### Common Issues
 
-1. **ImportError with torch._six**
-   - Already fixed in our implementation
-   - Uses compatibility layer for different PyTorch versions
+1. **"Field required" error when using style transfer**
+   - Make sure you're providing both content_image_path and style_image_path
+   - The agent should automatically parse your request correctly
 
-2. **Missing decoder model**
-   - Download from the Google Drive link above
-   - Ensure it's placed in the correct directory
+2. **Model file not found**
+   - Ensure you've downloaded the decoder model from the Google Drive link
+   - Place it in `StyTR-2/experiments/decoder_iter_160000.pth`
+   - Run `test_style_transfer_tool.py` to verify all files are present
 
-3. **GPU not available**
-   - The tool will automatically fall back to CPU
-   - Processing will be slower but still functional
+3. **Out of memory error**
+   - Try using smaller images
+   - Close other applications to free up RAM/VRAM
+   - Use CPU mode if GPU memory is limited
+
+4. **Style transfer output looks wrong**
+   - Check that input images are valid and not corrupted
+   - Try adjusting the alpha parameter for different style strengths
+   - Ensure both images are in supported formats
 
 ## 🤝 Contributing
 
@@ -240,3 +260,4 @@ This project is open source and available under the MIT License.
 - OpenAI for GPT-4o
 - LangChain and LangGraph teams
 - StyTR-2 authors for the style transfer model
+- The open-source community
