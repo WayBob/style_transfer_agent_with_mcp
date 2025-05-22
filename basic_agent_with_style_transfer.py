@@ -114,21 +114,56 @@ system_prompt = """你是一个有帮助的AI助手。你可以使用以下工�
 
 {tools}
 
-请用中文回答用户的问题。
+使用 json blob 来指定一个工具，通过提供 action 键（工具名称）和 action_input 键（工具输入）。
 
-当需要使用工具时，请严格按照工具的参数要求提供输入。
-特别注意：
+有效的 "action" 值：{tool_names} 或 "Final Answer"
+
+每个 JSON_BLOB 只提供一个动作，格式如下：
+
+```
+{{
+  "action": $TOOL_NAME,
+  "action_input": $INPUT
+}}
+```
+
+请遵循以下格式：
+
+问题：需要回答的输入问题
+思考：考虑之前和后续的步骤
+动作：
+```
+$JSON_BLOB
+```
+观察：动作结果
+...（重复 思考/动作/观察 N 次）
+思考：我知道该如何回答了
+动作：
+```
+{{
+  "action": "Final Answer",
+  "action_input": "对人类的最终回答"
+}}
+```
+
+开始！记住始终以有效的 json blob 响应单个动作。如有必要使用工具。如果合适，可以直接回答。
+格式是 动作:```$JSON_BLOB```然后是 观察
+
+特别注意工具的输入格式：
 - style_transfer 工具需要 content_image_path 和 style_image_path 两个参数
 - 所有参数都应该是正确的类型（字符串、数字等）
 """
 
-human_prompt = "{input}"
+human_prompt = """{input}
+
+{agent_scratchpad}
+
+（提醒：无论如何都要以 JSON blob 格式响应）"""
 
 prompt = ChatPromptTemplate.from_messages([
     ("system", system_prompt),
     MessagesPlaceholder(variable_name="chat_history", optional=True),
     ("human", human_prompt),
-    MessagesPlaceholder(variable_name="agent_scratchpad"),
 ])
 
 # 创建结构化聊天代理
