@@ -209,6 +209,41 @@ python test_style_transfer_tool.py
 - **风格注意力网络**用于风格转换
 - **多尺度特征匹配**以获得更好的质量
 
+### 智能体配置
+
+本项目使用 LangChain 的 `create_structured_chat_agent` 来实现智能体功能，这需要特定的配置：
+
+- **提示词格式**：智能体需要在提示模板中包含特定的 JSON 格式指令才能正常运行。
+- **JSON 输出结构**：LLM 必须以正确格式的 JSON 块响应，包含：
+  ```json
+  {
+    "action": "工具名称或Final_Answer",
+    "action_input": "参数或最终回答"
+  }
+  ```
+- **人类消息模板**：必须同时包含 `{input}` 和 `{agent_scratchpad}` 变量。
+- **系统提示词**：必须指定预期的 JSON 格式并提供清晰的工具使用指导。
+
+系统提示词格式示例：
+```
+你是一个有帮助的AI助手。你可以使用以下工具来帮助回答问题：
+
+{tools}
+
+使用 json blob 来指定一个工具，通过提供 action 键（工具名称）和 action_input 键（工具输入）。
+
+有效的 "action" 值：{tool_names} 或 "Final Answer"
+
+每个 JSON_BLOB 只提供一个动作，格式如下：
+
+{
+  "action": $TOOL_NAME,
+  "action_input": $INPUT
+}
+
+（其他格式说明...）
+```
+
 ### 性能考虑
 
 - **推荐使用 GPU**：在支持 CUDA 的 GPU 上风格转换速度更快
@@ -237,12 +272,23 @@ python test_style_transfer_tool.py
    - 将其放置在 `StyTR-2/experiments/decoder_iter_160000.pth`
    - 运行 `test_style_transfer_tool.py` 验证所有文件是否存在
 
-3. **内存不足错误**
+3. **"Variable agent_scratchpad should be a list of base messages" 错误**
+   - 这表明提示词中 `agent_scratchpad` 的预期格式不匹配
+   - 确保您的人类消息模板将 `{agent_scratchpad}` 作为字符串变量包含
+   - 检查提示词结构是否符合 LangChain 对 `create_structured_chat_agent` 的要求
+
+4. **"Could not parse LLM output" 或 "Invalid or incomplete response" 错误**
+   - LLM 没有以预期的 JSON 格式响应
+   - 更新系统提示词，包含明确的 JSON 格式说明
+   - 确保提示词包含精确的预期响应格式示例
+   - 在人类提示词的末尾添加以 JSON 格式响应的提醒
+
+5. **内存不足错误**
    - 尝试使用更小的图片
    - 关闭其他应用程序以释放 RAM/VRAM
    - 如果 GPU 内存有限，使用 CPU 模式
 
-4. **风格转换输出看起来不对**
+6. **风格转换输出看起来不对**
    - 检查输入图片是否有效且未损坏
    - 尝试调整 alpha 参数以获得不同的风格强度
    - 确保两张图片都是支持的格式

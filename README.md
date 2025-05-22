@@ -209,6 +209,41 @@ The style transfer feature uses StyTR-2, which employs:
 - **Style-Attentional Network** for style transfer
 - **Multi-scale feature matching** for better quality
 
+### Agent Configuration
+
+The project uses LangChain's `create_structured_chat_agent` for agent functionality, which requires specific configuration:
+
+- **Prompt Format**: The agent requires specific JSON format instructions in the prompt template to function correctly.
+- **JSON Output Structure**: The LLM must respond with a properly formatted JSON blob containing:
+  ```json
+  {
+    "action": "tool_name_or_Final_Answer",
+    "action_input": "parameters_or_final_response"
+  }
+  ```
+- **Human Message Template**: Must include both `{input}` and `{agent_scratchpad}` variables.
+- **System Prompt**: Must specify the expected JSON format and provide clear guidance on tool usage.
+
+Example system prompt format:
+```
+You are a helpful AI assistant. You can use the following tools:
+
+{tools}
+
+Use a json blob to specify a tool by providing an action key (tool name) and an action_input key (tool input).
+
+Valid "action" values: {tool_names} or "Final Answer"
+
+Provide only ONE action per JSON_BLOB, as shown:
+
+{
+  "action": $TOOL_NAME,
+  "action_input": $INPUT
+}
+
+(Additional formatting instructions...)
+```
+
 ### Performance Considerations
 
 - **GPU Recommended**: Style transfer is much faster on CUDA-enabled GPUs
@@ -237,12 +272,23 @@ The style transfer feature uses StyTR-2, which employs:
    - Place it in `StyTR-2/experiments/decoder_iter_160000.pth`
    - Run `test_style_transfer_tool.py` to verify all files are present
 
-3. **Out of memory error**
+3. **"Variable agent_scratchpad should be a list of base messages" error**
+   - This indicates a mismatch between the expected format of `agent_scratchpad` in the prompt
+   - Ensure your human message template includes `{agent_scratchpad}` as a string variable
+   - Check that the prompt structure follows LangChain's expectations for `create_structured_chat_agent`
+
+4. **"Could not parse LLM output" or "Invalid or incomplete response" errors**
+   - The LLM is not responding with the expected JSON format
+   - Update the system prompt to include explicit JSON formatting instructions
+   - Ensure the prompt includes examples of the exact expected response format
+   - Add a reminder at the end of the human prompt to respond in JSON format
+
+5. **Out of memory error**
    - Try using smaller images
    - Close other applications to free up RAM/VRAM
    - Use CPU mode if GPU memory is limited
 
-4. **Style transfer output looks wrong**
+6. **Style transfer output looks wrong**
    - Check that input images are valid and not corrupted
    - Try adjusting the alpha parameter for different style strengths
    - Ensure both images are in supported formats
