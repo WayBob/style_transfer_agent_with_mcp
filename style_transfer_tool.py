@@ -140,6 +140,11 @@ class StyleTransferTool:
             if alpha < 1.0:
                 output = output * alpha + content.cpu() * (1.0 - alpha)
             
+            # Ensure output directory exists before saving
+            output_dir = os.path.dirname(output_path)
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
+                
             save_image(output, output_path)
             
             return output_path
@@ -179,7 +184,10 @@ def style_transfer(content_image_path: str, style_image_path: str, output_path: 
     if output_path is None:
         content_name = os.path.splitext(os.path.basename(content_image_path))[0]
         style_name = os.path.splitext(os.path.basename(style_image_path))[0]
-        output_path = f"stylized_{content_name}_with_{style_name}.jpg"
+        # Ensure output directory exists
+        output_dir = "output"
+        os.makedirs(output_dir, exist_ok=True)
+        output_path = os.path.join(output_dir, f"stylized_{content_name}_with_{style_name}.jpg")
     
     # Get tool instance and perform transfer
     tool = get_tool_instance()

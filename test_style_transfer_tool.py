@@ -14,9 +14,9 @@ def test_langchain_tool():
         
         # Test with demo images using invoke method
         result = style_transfer.invoke({
-            "content_image_path": "StyTR-2/demo/image_c/2_10_0_0_512_512.png",
-            "style_image_path": "StyTR-2/demo/image_s/LevelSequence_Vaihingen.0000.png",
-            "output_path": "test_langchain_output.jpg",
+            "content_image_path": "StyTR-2/demo/c_img/2_10_0_0_512_512.png",
+            "style_image_path": "StyTR-2/demo/s_img/LevelSequence_Vaihingen.0002.png",
+            "output_path": "output/test_langchain_output.jpg",
             "alpha": 0.8
         })
         
@@ -24,7 +24,7 @@ def test_langchain_tool():
         print(f"  Result: {result}")
         
         # Check if output file exists
-        if os.path.exists("test_langchain_output.jpg"):
+        if os.path.exists("output/test_langchain_output.jpg"):
             print(f"✓ Output file created successfully")
         else:
             print(f"✗ Output file not found")

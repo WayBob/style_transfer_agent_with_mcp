@@ -167,6 +167,10 @@ class StyleTransferModel:
                 os.unlink(tmp_path)
             
             if output_path:
+                # Ensure output directory exists before saving
+                output_dir = os.path.dirname(output_path)
+                if output_dir:
+                    os.makedirs(output_dir, exist_ok=True)
                 save_image(output, output_path)
             
             return output_path, base64_str
@@ -191,7 +195,10 @@ async def apply_style_transfer(request: StyleTransferRequest) -> StyleTransferRe
         if request.output_path is None and not request.return_base64:
             content_name = os.path.splitext(os.path.basename(request.content_image_path))[0]
             style_name = os.path.splitext(os.path.basename(request.style_image_path))[0]
-            request.output_path = f"stylized_{content_name}_with_{style_name}.jpg"
+            # Ensure output directory exists
+            output_dir = "output"
+            os.makedirs(output_dir, exist_ok=True)
+            request.output_path = os.path.join(output_dir, f"stylized_{content_name}_with_{style_name}.jpg")
         
         # Perform style transfer
         output_path, base64_image = model.transfer_style(

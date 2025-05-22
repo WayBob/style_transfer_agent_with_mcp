@@ -36,3 +36,6 @@ checkpoints/
 
 StyTR-2/experiments/
 *.pth
+
+# Output directory for generated images
+output/

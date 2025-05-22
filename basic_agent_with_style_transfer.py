@@ -190,7 +190,7 @@ def main():
     
     # 示例对话
     example_prompts = [
-        "请将 StyTR-2/demo/image_c/2_10_0_0_512_512.png 转换成 StyTR-2/demo/image_s/LevelSequence_Vaihingen.0000.png 的艺术风格",
+        "请将 StyTR-2/demo/c_img/2_10_0_0_512_512.png 转换成 StyTR-2/demo/s_img/LevelSequence_Vaihingen.0002.png 的艺术风格",
         "现在几点了？",
         "帮我搜索一下最新的AI技术发展",
         "计算 1234 * 5678"
