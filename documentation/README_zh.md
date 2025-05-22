@@ -307,3 +307,91 @@ python test_style_transfer_tool.py
 - LangChain 和 LangGraph 团队
 - StyTR-2 作者提供的风格转换模型
 - 开源社区 
+
+### 编程方式使用 MCP 客户端调用风格迁移服务
+
+您也可以通过编写 MCP 客户端程序来直接与 `style_transfer_mcp_server.py` 交互。如果您希望将风格迁移功能直接集成到其他 Python 脚本或工作流中，而不是通过代理界面，这将非常有用。
+
+创建一个 Python 脚本 (例如, `mcp_style_client.py`):
+
+```python
+import asyncio
+import logging
+import os # 确保导入 os
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+async def run_mcp_style_client():
+    # 假设客户端脚本和服务器脚本都在项目根目录
+    project_root = os.path.dirname(os.path.abspath(__file__))
+    server_script_path = os.path.join(project_root, "style_transfer_mcp_server.py")
+    
+    server_params = StdioServerParameters(
+        command="python", 
+        args=[server_script_path],
+        cwd=project_root # 设置服务器的工作目录为项目根目录
+    )
+
+    try:
+        async with stdio_client(server_params) as (read_stream, write_stream):
+            async with ClientSession(read_stream, write_stream) as session:
+                await session.initialize()
+                logger.info("成功连接到风格迁移 MCP 服务器。")
+
+                tools_response = await session.list_tools()
+                available_tools = {tool.name: tool for tool in tools_response.tools}
+                logger.info(f"可用的工具: {list(available_tools.keys())}")
+
+                tool_to_call = "apply_style_transfer"
+                if tool_to_call not in available_tools:
+                    logger.error(f"错误：服务器未提供名为 '{tool_to_call}' 的工具。")
+                    return
+
+                logger.info(f"尝试调用工具: {tool_to_call}")
+                
+                # 确保这些路径相对于服务器的工作目录 (cwd) 是正确的
+                style_transfer_payload = {
+                    "content_image_path": "StyTR-2/demo/image_c/2_10_0_0_512_512.png", 
+                    "style_image_path": "StyTR-2/demo/image_s/LevelSequence_Vaihingen.0000.png", 
+                    "alpha": 0.8,
+                    "return_base64": False
+                    # "output_path": "custom_output_via_client.jpg" # 可选：指定输出路径
+                }
+                
+                arguments_for_call = {"request": style_transfer_payload}
+                
+                logger.info(f"调用工具 '{tool_to_call}' 的参数: {arguments_for_call}")
+                result = await session.call_tool(tool_to_call, arguments=arguments_for_call)
+                
+                if result.isError:
+                    error_message = "未知错误"
+                    if result.content and hasattr(result.content[0], 'text'):
+                        error_message = result.content[0].text
+                    logger.error(f"工具 '{tool_to_call}' 调用失败: {error_message}")
+                else:
+                    logger.info(f"工具 '{tool_to_call}' 执行成功！")
+                    for content_item in result.content:
+                        if content_item.type == "text":
+                            logger.info(f"  响应: {content_item.text}")
+                        # 如果期望其他类型的内容（如资源URI），可以添加更多处理逻辑
+    except Exception as e:
+        logger.exception(f"运行 MCP 客户端时发生错误: {e}")
+
+if __name__ == "__main__":
+    # 确保 StyTR-2 模型 (decoder_iter_160000.pth) 已放置在 StyTR-2/experiments/ 目录下
+    # 确保服务器的 Python 环境已安装所有必要依赖。
+    # 此示例假设客户端脚本位于项目根目录，并设置服务器CWD为项目根目录。
+    # 如果您的文件结构不同，请相应调整 server_script_path 和图片路径。
+    asyncio.run(run_mcp_style_client())
+```
+
+**运行此客户端：**
+1. 将以上代码保存为 `mcp_style_client.py` (或其他名称) 到您的项目根目录下。
+2. 确保您的 `style_transfer_mcp_server.py` 也在项目根目录下，或者在脚本中提供正确的相对/绝对路径。
+3. 调整 `style_transfer_payload` 中的 `content_image_path` 和 `style_image_path`，确保它们是服务器可以访问到的有效图片路径（通常是相对于服务器工作目录的路径，或绝对路径）。
+4. 运行客户端脚本: `python mcp_style_client.py` (如果需要，请确保使用项目虚拟环境中的 Python 解释器)。
+
+此脚本将会连接到您本地的 MCP 服务器，调用 `apply_style_transfer` 工具，并打印返回结果。 

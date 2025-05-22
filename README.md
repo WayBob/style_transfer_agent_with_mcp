@@ -176,6 +176,84 @@ This will run a comprehensive test including:
 - Direct tool testing
 - Langchain integration testing
 
+### Programmatic MCP Client for Style Transfer Server
+
+You can also interact with the `style_transfer_mcp_server.py` programmatically using an MCP client. This is useful if you want to integrate the style transfer capability into other Python scripts or workflows directly, bypassing the agent interface.
+
+Create a Python script (e.g., `mcp_style_client.py`):
+
+```python
+import asyncio
+import logging
+import os # Ensure os is imported
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+async def run_mcp_style_client():
+    # Assume client and server scripts are in the project root
+    project_root = os.path.dirname(os.path.abspath(__file__))
+    server_script_path = os.path.join(project_root, "style_transfer_mcp_server.py") 
+    
+    server_params = StdioServerParameters(
+        command="python", 
+        args=[server_script_path],
+        cwd=project_root # Set server's CWD to project root
+    )
+
+    try:
+        async with stdio_client(server_params) as (read_stream, write_stream):
+            async with ClientSession(read_stream, write_stream) as session:
+                await session.initialize()
+                logger.info("Successfully connected to the Style Transfer MCP Server.")
+
+                tools_response = await session.list_tools()
+                available_tools = {tool.name: tool for tool in tools_response.tools}
+                logger.info(f"Available tools: {list(available_tools.keys())}")
+
+                tool_to_call = "apply_style_transfer"
+                if tool_to_call not in available_tools:
+                    logger.error(f"Error: Tool '{tool_to_call}' not found on server.")
+                    return
+
+                logger.info(f"Attempting to call tool: {tool_to_call}")
+                
+                # Ensure these paths are correct relative to the server's CWD (project_root)
+                style_transfer_payload = {
+                    "content_image_path": "StyTR-2/demo/image_c/2_10_0_0_512_512.png", 
+                    "style_image_path": "StyTR-2/demo/image_s/LevelSequence_Vaihingen.0000.png", 
+                    "alpha": 0.8,
+                    "return_base64": False 
+                    # "output_path": "custom_output_via_client.jpg" # Optional
+                }
+                
+                arguments_for_call = {"request": style_transfer_payload}
+                
+                logger.info(f"Calling '{tool_to_call}' with args: {arguments_for_call}")
+                result = await session.call_tool(tool_to_call, arguments=arguments_for_call)
+                
+                if result.isError:
+                    error_message = "Unknown error"
+                    if result.content and hasattr(result.content[0], 'text'):
+                        error_message = result.content[0].text
+                    logger.error(f"Tool '{tool_to_call}' failed: {error_message}")
+                else:
+                    logger.info(f"Tool '{tool_to_call}' executed successfully!")
+                    for content_item in result.content:
+                        if content_item.type == "text":
+                            logger.info(f"  Response: {content_item.text}")
+                        # Add more handling for other content types if expected (e.g., resource URI)
+    except Exception as e:
+        logger.exception(f"An error occurred while running the MCP client: {e}")
+
+if __name__ == "__main__":
+    # Ensure the StyTR-2 model (decoder_iter_160000.pth) is in StyTR-2/experiments/
+    # Ensure your Python environment for the server has all necessary dependencies.
+    # This example assumes the client script is in the project root.
+    asyncio.run(run_mcp_style_client())
+
 ## 🏗️ Project Structure
 
 ```
