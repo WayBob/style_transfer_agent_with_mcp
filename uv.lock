@@ -14,6 +14,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "dotenv" },
     { name = "duckduckgo-search" },
+    { name = "glances" },
     { name = "gradio" },
     { name = "langchain" },
     { name = "langchain-community" },
@@ -37,6 +38,7 @@ dependencies = [
 requires-dist = [
     { name = "dotenv", specifier = ">=0.9.9" },
     { name = "duckduckgo-search", specifier = ">=8.0.2" },
+    { name = "glances", specifier = ">=4.3.1" },
     { name = "gradio", specifier = ">=5.30.0" },
     { name = "langchain", specifier = ">=0.3.25" },
     { name = "langchain-community", specifier = ">=0.3.24" },
@@ -369,6 +371,15 @@ wheels = [
 ]
 
 [[package]]
+name = "defusedxml"
+version = "0.7.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/0f/d5/c66da9b79e5bdb124974bfe172b4daf3c984ebd9c2a06e2b8a4dc7331c72/defusedxml-0.7.1.tar.gz", hash = "sha256:1bb3032db185915b62d7c6209c5a8792be6a32ab2fedacc84e01b52c51aa3e69", size = 75520, upload-time = "2021-03-08T10:59:26.269Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/07/6c/aa3f2f849e01cb6a001cd8554a88d4c77c5c1a31c95bdf1cf9301e6d9ef4/defusedxml-0.7.1-py2.py3-none-any.whl", hash = "sha256:a352e7e428770286cc899e2542b6cdaedb2b4953ff269a210103ec58f6198a61", size = 25604, upload-time = "2021-03-08T10:59:24.45Z" },
+]
+
+[[package]]
 name = "distro"
 version = "1.9.0"
 source = { registry = "https://pypi.org/simple" }
@@ -526,6 +537,21 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/f2/77/deb99b97981e2e191913454da82d406702405178631c31cd623caebaf1b1/fsspec-2025.5.0.tar.gz", hash = "sha256:e4f4623bb6221f7407fd695cc535d1f857a077eb247580f4ada34f5dc25fd5c8", size = 300989, upload-time = "2025-05-20T15:46:22.484Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/2c/a9/a7022f58e081149ec0184c31ea81dcee605e1d46380b48122e1ef94ac24e/fsspec-2025.5.0-py3-none-any.whl", hash = "sha256:0ca253eca6b5333d8a2b8bd98c7326fe821f1f0fdbd34e1b445bddde8e804c95", size = 196164, upload-time = "2025-05-20T15:46:20.89Z" },
+]
+
+[[package]]
+name = "glances"
+version = "4.3.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "defusedxml" },
+    { name = "packaging" },
+    { name = "psutil" },
+    { name = "windows-curses", marker = "sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e0/df/96cd0ff650bd491a73815171131304d9c0d15d90ef44fed26324558aabf0/glances-4.3.1.tar.gz", hash = "sha256:952c4985b9c1ff9d9ebd23760a2dd124fa2315cf02acfa68f3b7e1c51e087c8c", size = 6993688, upload-time = "2025-03-22T16:56:40.379Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/15/c9/d74441b085837e98309eeb1e93bd99b9111d1ac959fc0be20e833c9e3265/glances-4.3.1-py3-none-any.whl", hash = "sha256:cd8a11b03c548af113ee958a385738708d82af316646a65f4843d131237dcfba", size = 908638, upload-time = "2025-03-22T16:56:38.383Z" },
 ]
 
 [[package]]

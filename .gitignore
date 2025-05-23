@@ -39,3 +39,5 @@ StyTR-2/experiments/
 
 # Output directory for generated images
 output/
+
+.zshenv
